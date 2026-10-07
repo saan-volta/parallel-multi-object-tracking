@@ -1,15 +1,12 @@
 #include <stdio.h>
 #include <cmath>
 #include <iostream>
-#include <fstream>
-#include "json.hpp"
+#include "../include/kalman_filter.h"
 
 #define IDX(r, c, width) ((r) * (width) + (c))
 #define X_DIM 4
 #define Z_DIM 2
 #define P_DIM 16
-
-
 
 
 
@@ -103,7 +100,8 @@ constexpr int ceil_div(int a, int b) {
 }
 
 
-void launchKF(
+void kalman_launch(
+  // float* x_arr,
   const float* x0_data,
   const float* z_data,
   const int N,
@@ -134,7 +132,7 @@ void launchKF(
     kalman_predict_update<<<num_t, num_b>>>(dev_x, dev_P, dev_z, N, dt, Q_var, R_var);
     cudaMemcpy(host_x, dev_x, x_size, cudaMemcpyDeviceToHost);
 
-    // std::cout << "[ " << host_x[0] << "\t" << host_x[1] << "\t" << host_x[2] << "\t" << host_x[3] << " ]\n";
+    std::cout << "[ " << host_x[0] << "\t" << host_x[1] << "\t" << host_x[2] << "\t" << host_x[3] << " ]\n";
   }
  
   free(host_x);
@@ -142,48 +140,3 @@ void launchKF(
  
 }
 
-
-int read_bin(std::string fname , float* arr, int size)
-{
-  std::ifstream file(fname, std::ios::binary );
-  if (!file) return 1;
-  file.seekg(0, std::ios::beg );
-  file.read(reinterpret_cast<char*>(arr), size*sizeof(float));
-  return 0;
-}
-
-
-using json = nlohmann::json;
-int main()
-{
-  std::ifstream inf("data_in.json");
-  json data_dict = json::parse(inf);
-
-  int N = data_dict["N"];
-  int T = data_dict["T"];
-  float Q_var = data_dict["Q_var"];
-  float R_var = data_dict["R_var"];
-  float dt = data_dict["dt"];
-  std::string x0fname = data_dict["x0fname"];
-  std::string zfname = data_dict["zfname"];
-
-  size_t x_size = sizeof(float)*X_DIM *N;
-  // size_t P_size = sizeof(float)*X_DIM*X_DIM *N;
-  size_t z_size = sizeof(float)*Z_DIM *N;
-
-  // load data
-  float x0_array[x_size];
-  float z_array[z_size*T];
-
-  read_bin(x0fname, x0_array, x_size);
-  read_bin(zfname, z_array, z_size*T);
-
-  // std::cout << x0_array[0] << "\t" << z_array[0] << "\n";
-  // std::cout << x0_array[1] << "\t" << z_array[1] << "\n";
-  // std::cout << x0_array[2] << "\t" << z_array[2] << "\n";
-  
-  launchKF(x0_array, z_array, N, T, dt, Q_var, R_var);
-
-
-  
-}
