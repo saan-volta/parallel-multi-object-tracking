@@ -1,6 +1,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <vector>
 #include "json.hpp"
 #include "../include/kalman_filter.h"
 
@@ -11,6 +12,7 @@ int read_bin(std::string fname , float* arr, int size)
   if (!file) return 1;
   file.seekg(0, std::ios::beg );
   file.read(reinterpret_cast<char*>(arr), size*sizeof(float));
+  std::cout << "Read " << fname <<  std::endl;
   return 0;
 }
 
@@ -33,23 +35,22 @@ int main(int arc, char* argv[])
   float dt = data_dict["dt"];
   std::string x0fname = data_dict["x0fname"];
   std::string zfname = data_dict["zfname"];
+  std::cout << "Read " << "json \t N = " << N << " \n" << std::endl;
 
-  size_t x_size = sizeof(float)*X_DIM *N;
-  // size_t P_size = sizeof(float)*X_DIM*X_DIM *N;
-  size_t z_size = sizeof(float)*Z_DIM *N;
+  int x_size =X_DIM *N;
+  int z_size = Z_DIM *N;
 
   // load data
-  float x0_array[x_size];
-  float z_array[z_size*T];
+  std::vector<float> x0_array(x_size);
+  std::cout << "Array x0 allocated\n"; 
+  std::vector<float> z_array(z_size*T);
+  std::cout << "Array z allocated\n"; 
 
-  read_bin( data_path + x0fname, x0_array, x_size);
-  read_bin( data_path + zfname, z_array, z_size*T);
+  read_bin( data_path + x0fname, x0_array.data(), x_size);
+  read_bin( data_path + zfname, z_array.data(), z_size*T);
 
-  // std::cout << x0_array[0] << "\t" << z_array[0] << "\n";
-  // std::cout << x0_array[1] << "\t" << z_array[1] << "\n";
-  // std::cout << x0_array[2] << "\t" << z_array[2] << "\n";
   
-  kalman_launch(x0_array, z_array, N, T, dt, Q_var, R_var);
+  kalman_launch(x0_array.data(), z_array.data(), N, T, dt, Q_var, R_var);
 
 
   
